@@ -1,11 +1,14 @@
+'use client'
+
 import Link from 'next/link'
 import styles from '@/styles/about.module.scss'
 import ReadMoreSection from '@/components/ReadMoreSection'
+import { PageElement } from '@/components/transitions/LayoutTransition'
 
-export const metadata = {
-  title: 'About - Front-End Developer',
-  description: 'Front-End Web Developer specializing in blending imagination with functionality to craft digital experiences that ignite the senses.',
-}
+// export const metadata = {
+//   title: 'About - Front-End Developer',
+//   description: 'Front-End Web Developer specializing in blending imagination with functionality to craft digital experiences that ignite the senses.',
+// }
 
 export default function AboutPage() {
   const socialLinks = [
@@ -70,10 +73,29 @@ export default function AboutPage() {
     <main className={styles.about}>
       <div className={styles.container}>
         {/* Heading */}
-        <h1 className={styles.heading}>About Me</h1>
+        <PageElement 
+          exitOrder={0} 
+          entranceOrder={0}
+          variants={{
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            exit: { opacity: 0, y: -20 }
+          }}
+        >
+          <h1 className={styles.heading}>About Me</h1>
+        </PageElement>
 
         {/* Content */}
-        <div className={styles.content}>
+        <PageElement 
+          className={styles.content} 
+          exitOrder={1} 
+          entranceOrder={1}
+          variants={{
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
+            exit: { opacity: 0 }
+          }}
+        >
           <p className={styles.paragraph}>
             As a Front-End Web Developer, I strive to blend imagination with functionality, 
             crafting digital experiences that ignite the senses.
@@ -88,10 +110,19 @@ export default function AboutPage() {
               experiences that immerse, engage and inspire.
             </p>
           </ReadMoreSection>
-        </div>
+        </PageElement>
 
         {/* Social Links */}
-        <div className={styles.socialLinks}>
+        <PageElement 
+          className={styles.socialLinks} 
+          exitOrder={2} 
+          entranceOrder={2}
+          variants={{
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            exit: { opacity: 0, y: -20 }
+          }}
+        >
           {socialLinks.map((link) => (
             <Link
               key={link.name}
@@ -105,7 +136,7 @@ export default function AboutPage() {
               {link.icon}
             </Link>
           ))}
-        </div>
+        </PageElement>
       </div>
     </main>
   )
