@@ -1,14 +1,15 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { NavigationProvider } from '@/components/transitions/NavigationContext'
 import { LayoutTransition } from '@/components/transitions/LayoutTransition'
 import SwipeHandler from '@/components/transitions/SwipeHandler'
 import DesktopNavigation from '@/components/navigation/DesktopNavigation'
 import MobileNavigation from '@/components/navigation/MobileNavigation'
 
-// Dynamic import for the 3D scene
+// Dynamic import for the 3D scene with a consistent key to prevent remounting
 const Scene = dynamic(() => import('@/components/canvas/Scene'), { 
   ssr: false,
   loading: () => (
@@ -26,10 +27,26 @@ const Scene = dynamic(() => import('@/components/canvas/Scene'), {
 
 const Layout = ({ children }) => {
   const ref = useRef()
+  const pathname = usePathname()
+  const [renderKey] = useState('persistent-scene-key') // Keep the same key to prevent remounting
+
+  // Prefetch all routes when the component mounts
+  useEffect(() => {
+    // Prefetch all main routes
+    const routes = ['/', '/about', '/skills', '/projects', '/contact']
+    
+    // Create a link element for each route to trigger prefetching
+    routes.forEach(route => {
+      const link = document.createElement('link')
+      link.rel = 'prefetch'
+      link.href = route
+      document.head.appendChild(link)
+    })
+  }, [])
 
   return (
     <NavigationProvider>
-      {/* 3D Background Canvas - Explicitly behind everything */}
+      {/* 3D Background Canvas with a consistent key */}
       <div
         style={{
           position: 'fixed',
@@ -37,11 +54,12 @@ const Layout = ({ children }) => {
           left: 0,
           width: '100vw',
           height: '100vh',
-          zIndex: -1, // Explicitly behind
+          zIndex: -1,
           pointerEvents: 'none',
         }}
       >
         <Scene
+          key={renderKey} // Keep the 3D scene mounted with a persistent key
           style={{
             width: '100%',
             height: '100%',
@@ -55,7 +73,7 @@ const Layout = ({ children }) => {
       <DesktopNavigation />
       <MobileNavigation />
       
-      {/* Main content with transitions - Explicitly in front */}
+      {/* Main content with transitions */}
       <SwipeHandler>
         <div
           ref={ref}
@@ -63,13 +81,13 @@ const Layout = ({ children }) => {
             position: 'relative',
             width: '100%',
             minHeight: '100vh',
-            zIndex: 1, // Explicitly in front
+            zIndex: 1,
             pointerEvents: 'auto',
           }}
         >
           <LayoutTransition
-            exitDuration={1.5}   // 1.5s for exit animations
-            entranceDelay={1}    // 1s delay before entrance (starts at 2.5s mark)
+            exitDuration={1}   // Reduced for better performance
+            entranceDelay={0.5} // Reduced for better performance
           >
             {children}
           </LayoutTransition>

@@ -1,15 +1,15 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { createContext, useState, useContext, useCallback, useEffect } from "react";
+import { createContext, useState, useContext, useCallback, useEffect, useMemo } from "react";
 
 // Define available routes in order
 const ROUTES = [
-  "/",                // home
-  "/about",          // about
-  "/skills",         // skills
-  "/projects",       // projects
-  "/contact"         // contact
+  "/",           // home
+  "/about",      // about
+  "/skills",     // skills
+  "/projects",   // projects
+  "/contact"     // contact
 ];
 
 // Create context
@@ -21,34 +21,68 @@ export function NavigationProvider({ children }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [direction, setDirection] = useState(null); // 'forward' or 'backward'
   
-  // Get current route index
-  const currentRouteIndex = ROUTES.indexOf(pathname);
+  // Get current route index - memoized to prevent unnecessary recalculations
+  const currentRouteIndex = useMemo(() => ROUTES.indexOf(pathname), [pathname]);
+  
+  // Prefetch all routes on component mount
+  useEffect(() => {
+    // Create a link element for each route to trigger prefetching
+    ROUTES.forEach(route => {
+      // Skip current route
+      if (route === pathname) return;
+      
+      // Programmatically prefetch each route
+      router.prefetch(route);
+      
+      // Also add link prefetch tags for additional prefetching
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = route;
+      document.head.appendChild(link);
+    });
+  }, [pathname, router]);
   
   // Function to navigate to a specific route
   const navigateTo = useCallback((route) => {
     if (isNavigating) return; // Prevent multiple navigations
     
     const targetIndex = ROUTES.indexOf(route);
-    const currentIndex = ROUTES.indexOf(pathname);
+    const currentIndex = currentRouteIndex;
+    
+    // Don't navigate if we're already on the target route
+    if (targetIndex === currentIndex) return;
     
     // Set direction based on indices
     const newDirection = targetIndex > currentIndex ? "forward" : "backward";
     
-    if (targetIndex !== currentIndex) {
-      setIsNavigating(true);
-      setDirection(newDirection);
+    setIsNavigating(true);
+    setDirection(newDirection);
+    
+    // Wait for exit animations to complete before changing route
+    // Using requestAnimationFrame for smoother transitions
+    const exitTime = 1000; // Match exit animation duration (1s)
+    const startTime = performance.now();
+    
+    // Use requestAnimationFrame for smoother animation timing
+    const animate = (currentTime) => {
+      const elapsedTime = currentTime - startTime;
       
-      // Wait for exit animations to complete before changing route
-      setTimeout(() => {
+      if (elapsedTime >= exitTime) {
+        // Navigation time reached, change route
         router.push(route);
         
         // Reset navigation state after a short delay
         setTimeout(() => {
           setIsNavigating(false);
         }, 100);
-      }, 1500); // Match exit animation duration
-    }
-  }, [router, pathname, isNavigating]);
+      } else {
+        // Continue animation frame
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [router, currentRouteIndex, isNavigating]);
   
   // Function to navigate to next route
   const navigateNext = useCallback(() => {
@@ -74,12 +108,12 @@ export function NavigationProvider({ children }) {
     }
   }, [currentRouteIndex, navigateTo, isNavigating]);
   
-  // Check if we're at the first or last route
-  const isFirstRoute = currentRouteIndex === 0;
-  const isLastRoute = currentRouteIndex === ROUTES.length - 1;
+  // Check if we're at the first or last route - memoized to prevent unnecessary recalculations
+  const isFirstRoute = useMemo(() => currentRouteIndex === 0, [currentRouteIndex]);
+  const isLastRoute = useMemo(() => currentRouteIndex === ROUTES.length - 1, [currentRouteIndex]);
   
-  // Context value
-  const value = {
+  // Context value - memoized to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     currentRoute: pathname,
     isNavigating,
     direction,
@@ -90,7 +124,17 @@ export function NavigationProvider({ children }) {
     isLastRoute,
     routes: ROUTES,
     currentRouteIndex
-  };
+  }), [
+    pathname, 
+    isNavigating, 
+    direction, 
+    navigateTo, 
+    navigateNext, 
+    navigatePrevious, 
+    isFirstRoute, 
+    isLastRoute, 
+    currentRouteIndex
+  ]);
   
   return (
     <NavigationContext.Provider value={value}>

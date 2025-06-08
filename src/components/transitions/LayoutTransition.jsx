@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelectedLayoutSegment } from "next/navigation";
 import { LayoutRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, memo } from "react";
 
 // Custom hook to track previous values
 function usePreviousValue(value) {
@@ -20,8 +20,8 @@ function usePreviousValue(value) {
 }
 
 // FrozenRouter preserves the router context during animations
-// This is key to preventing abrupt unmounting during navigation
-function FrozenRouter({ children }) {
+// Memoized to prevent unnecessary re-renders
+const FrozenRouter = memo(({ children }) => {
   const context = useContext(LayoutRouterContext);
   const prevContext = usePreviousValue(context) || null;
 
@@ -38,18 +38,21 @@ function FrozenRouter({ children }) {
       {children}
     </LayoutRouterContext.Provider>
   );
-}
+});
 
-export function LayoutTransition({
+FrozenRouter.displayName = 'FrozenRouter';
+
+// Memoized LayoutTransition component to prevent unnecessary re-renders
+export const LayoutTransition = memo(({
   children,
   className,
   style,
-  exitDuration = 1.5, // Customizable exit duration (seconds)
-  entranceDelay = 1,  // Customizable delay before entrance animations (seconds)
-}) {
+  exitDuration = 1, // Reduced for better performance
+  entranceDelay = 0.5, // Reduced for better performance
+}) => {
   const segment = useSelectedLayoutSegment();
   
-  // Default animation settings
+  // Simplified animation settings for better performance
   const initial = { opacity: 0 };
   const animate = { opacity: 1 };
   const exit = { opacity: 0 };
@@ -66,10 +69,12 @@ export function LayoutTransition({
         transition={{
           exit: {
             duration: exitDuration,
+            ease: "easeInOut"
           },
           enter: {
             duration: exitDuration,
-            delay: entranceDelay, // Wait for exit + delay before animating in
+            delay: entranceDelay,
+            ease: "easeInOut"
           }
         }}
       >
@@ -79,23 +84,26 @@ export function LayoutTransition({
       </motion.div>
     </AnimatePresence>
   );
-}
+});
+
+LayoutTransition.displayName = 'LayoutTransition';
 
 // Element-specific transition component for animating individual elements
-export function PageElement({
+// Memoized for better performance
+export const PageElement = memo(({
   children,
   className,
   style,
   exitOrder = 0, // Order in which this element exits (0 = first)
   entranceOrder = 0, // Order in which this element enters (0 = first)
-  exitDuration = 0.5, // Duration of exit animation
-  entranceDuration = 0.5, // Duration of entrance animation
+  exitDuration = 0.3, // Reduced for better performance
+  entranceDuration = 0.3, // Reduced for better performance
   baseExitDelay = 0, // Base delay before exit animations start
-  baseEntranceDelay = 2.5, // Base delay before entrance animations start (2.5s mark)
+  baseEntranceDelay = 1.5, // Base delay before entrance animations start
   variants, // Custom animation variants
   ...props
-}) {
-  // Default variants if none provided
+}) => {
+  // Default variants if none provided - simplified for better performance
   const defaultVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -115,11 +123,13 @@ export function PageElement({
       transition={{
         exit: {
           duration: exitDuration,
-          delay: baseExitDelay + (exitOrder * 0.1), // Stagger exit animations
+          delay: baseExitDelay + (exitOrder * 0.08), // Slightly reduced stagger
+          ease: "easeInOut"
         },
         enter: {
           duration: entranceDuration,
-          delay: baseEntranceDelay + (entranceOrder * 0.1), // Stagger entrance animations
+          delay: baseEntranceDelay + (entranceOrder * 0.08), // Slightly reduced stagger
+          ease: "easeInOut"
         }
       }}
       {...props}
@@ -127,4 +137,6 @@ export function PageElement({
       {children}
     </motion.div>
   );
-}
+});
+
+PageElement.displayName = 'PageElement';

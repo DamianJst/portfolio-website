@@ -1,17 +1,20 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, memo } from "react";
 import { useGesture } from "@use-gesture/react";
 import { useNavigation } from "./NavigationContext";
 
-export default function SwipeHandler({ children, threshold = 50 }) {
+// Memoize the SwipeHandler component to prevent unnecessary re-renders
+const SwipeHandler = memo(({ children, threshold = 50 }) => {
   const containerRef = useRef(null);
   const { navigateNext, navigatePrevious, isFirstRoute, isLastRoute, isNavigating } = useNavigation();
+  const wheelTimeoutRef = useRef(null);
+  const lastWheelTime = useRef(0);
 
-  // Set up gesture handler
+  // Set up gesture handler with optimized performance
   const bind = useGesture(
     {
-      onDrag: ({ movement: [mx, my], direction: [dx, dy], distance, cancel }) => {
+      onDrag: ({ movement: [mx, my], direction: [dx, dy], cancel }) => {
         // Only handle vertical swipes and when not currently navigating
         if (Math.abs(my) > Math.abs(mx) && !isNavigating) {
           // Up swipe (negative my) = next page
@@ -29,15 +32,6 @@ export default function SwipeHandler({ children, threshold = 50 }) {
             }
           }
         }
-      },
-      // Optional - add some visual feedback during the drag
-      onDragStart: () => {
-        if (!isNavigating) {
-          // Add visual feedback classes if needed
-        }
-      },
-      onDragEnd: () => {
-        // Remove visual feedback classes if needed
       }
     },
     {
@@ -50,36 +44,47 @@ export default function SwipeHandler({ children, threshold = 50 }) {
     }
   );
 
-  // Handle wheel events for desktop scrolling navigation
+  // Handle wheel events with debounce for desktop scrolling navigation
   useEffect(() => {
     const handleWheel = (e) => {
       if (isNavigating) return;
       
-      // Debounce wheel events (simple version)
-      if (handleWheel.timeout) return;
+      // Throttle wheel events for better performance
+      const now = performance.now();
+      if (now - lastWheelTime.current < 1000) return; // 1 second throttle
       
-      handleWheel.timeout = setTimeout(() => {
-        handleWheel.timeout = null;
-      }, 1000); // Match navigation timing
+      lastWheelTime.current = now;
+      
+      // Clear any existing timeout
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current);
+      }
       
       // Scroll down = next page
       if (e.deltaY > 50) {
         if (!isLastRoute) {
+          e.preventDefault(); // Prevent default scroll
           navigateNext();
         }
       } 
       // Scroll up = previous page
       else if (e.deltaY < -50) {
         if (!isFirstRoute) {
+          e.preventDefault(); // Prevent default scroll
           navigatePrevious();
         }
       }
+      
+      // Set timeout to reset after animation completes
+      wheelTimeoutRef.current = setTimeout(() => {
+        wheelTimeoutRef.current = null;
+      }, 1000);
     };
     
-    // Add wheel event listener
+    // Add wheel event listener with passive: false to allow preventDefault
     const container = containerRef.current;
     if (container) {
-      container.addEventListener("wheel", handleWheel);
+      container.addEventListener("wheel", handleWheel, { passive: false });
     }
     
     // Cleanup
@@ -87,15 +92,27 @@ export default function SwipeHandler({ children, threshold = 50 }) {
       if (container) {
         container.removeEventListener("wheel", handleWheel);
       }
-      if (handleWheel.timeout) {
-        clearTimeout(handleWheel.timeout);
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current);
       }
     };
   }, [navigateNext, navigatePrevious, isFirstRoute, isLastRoute, isNavigating]);
 
   return (
-    <div ref={containerRef} {...bind()} style={{ touchAction: "none", height: "100%" }}>
+    <div 
+      ref={containerRef} 
+      {...bind()} 
+      style={{ 
+        touchAction: "none", 
+        height: "100%",
+        width: "100%"
+      }}
+    >
       {children}
     </div>
   );
-}
+});
+
+SwipeHandler.displayName = 'SwipeHandler';
+
+export default SwipeHandler;
