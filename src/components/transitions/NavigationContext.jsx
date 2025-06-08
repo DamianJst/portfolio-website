@@ -26,19 +26,11 @@ export function NavigationProvider({ children }) {
   
   // Prefetch all routes on component mount
   useEffect(() => {
-    // Create a link element for each route to trigger prefetching
+    // Programmatically prefetch each route
     ROUTES.forEach(route => {
       // Skip current route
       if (route === pathname) return;
-      
-      // Programmatically prefetch each route
       router.prefetch(route);
-      
-      // Also add link prefetch tags for additional prefetching
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.href = route;
-      document.head.appendChild(link);
     });
   }, [pathname, router]);
   
@@ -58,30 +50,15 @@ export function NavigationProvider({ children }) {
     setIsNavigating(true);
     setDirection(newDirection);
     
-    // Wait for exit animations to complete before changing route
-    // Using requestAnimationFrame for smoother transitions
-    const exitTime = 1000; // Match exit animation duration (1s)
-    const startTime = performance.now();
-    
-    // Use requestAnimationFrame for smoother animation timing
-    const animate = (currentTime) => {
-      const elapsedTime = currentTime - startTime;
+    // Use a timeout matching the exit duration
+    setTimeout(() => {
+      router.push(route);
       
-      if (elapsedTime >= exitTime) {
-        // Navigation time reached, change route
-        router.push(route);
-        
-        // Reset navigation state after a short delay
-        setTimeout(() => {
-          setIsNavigating(false);
-        }, 100);
-      } else {
-        // Continue animation frame
-        requestAnimationFrame(animate);
-      }
-    };
-    
-    requestAnimationFrame(animate);
+      // Reset navigation state after a short delay
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 100);
+    }, 1000); // Match exit animation duration
   }, [router, currentRouteIndex, isNavigating]);
   
   // Function to navigate to next route

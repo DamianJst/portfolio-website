@@ -20,7 +20,6 @@ function usePreviousValue(value) {
 }
 
 // FrozenRouter preserves the router context during animations
-// Memoized to prevent unnecessary re-renders
 const FrozenRouter = memo(({ children }) => {
   const context = useContext(LayoutRouterContext);
   const prevContext = usePreviousValue(context) || null;
@@ -42,30 +41,25 @@ const FrozenRouter = memo(({ children }) => {
 
 FrozenRouter.displayName = 'FrozenRouter';
 
-// Memoized LayoutTransition component to prevent unnecessary re-renders
+// Layout transition component
 export const LayoutTransition = memo(({
   children,
   className,
   style,
-  exitDuration = 1, // Reduced for better performance
-  entranceDelay = 0.5, // Reduced for better performance
+  exitDuration = 1,
+  entranceDelay = 0.5,
 }) => {
   const segment = useSelectedLayoutSegment();
   
-  // Simplified animation settings for better performance
-  const initial = { opacity: 0 };
-  const animate = { opacity: 1 };
-  const exit = { opacity: 0 };
-
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         className={className}
         style={style}
         key={segment}
-        initial={initial}
-        animate={animate}
-        exit={exit}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         transition={{
           exit: {
             duration: exitDuration,
@@ -89,21 +83,20 @@ export const LayoutTransition = memo(({
 LayoutTransition.displayName = 'LayoutTransition';
 
 // Element-specific transition component for animating individual elements
-// Memoized for better performance
 export const PageElement = memo(({
   children,
   className,
   style,
-  exitOrder = 0, // Order in which this element exits (0 = first)
-  entranceOrder = 0, // Order in which this element enters (0 = first)
-  exitDuration = 0.3, // Reduced for better performance
-  entranceDuration = 0.3, // Reduced for better performance
-  baseExitDelay = 0, // Base delay before exit animations start
-  baseEntranceDelay = 1.5, // Base delay before entrance animations start
-  variants, // Custom animation variants
+  exitOrder = 0,
+  entranceOrder = 0,
+  exitDuration = 0.3,
+  entranceDuration = 0.3,
+  baseExitDelay = 0,
+  baseEntranceDelay = 1.5,
+  variants,
   ...props
 }) => {
-  // Default variants if none provided - simplified for better performance
+  // Default variants if none provided
   const defaultVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -123,12 +116,12 @@ export const PageElement = memo(({
       transition={{
         exit: {
           duration: exitDuration,
-          delay: baseExitDelay + (exitOrder * 0.08), // Slightly reduced stagger
+          delay: baseExitDelay + (exitOrder * 0.08),
           ease: "easeInOut"
         },
         enter: {
           duration: entranceDuration,
-          delay: baseEntranceDelay + (entranceOrder * 0.08), // Slightly reduced stagger
+          delay: baseEntranceDelay + (entranceOrder * 0.08),
           ease: "easeInOut"
         }
       }}

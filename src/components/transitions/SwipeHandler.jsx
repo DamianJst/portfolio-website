@@ -11,7 +11,7 @@ const SwipeHandler = memo(({ children, threshold = 50 }) => {
   const wheelTimeoutRef = useRef(null);
   const lastWheelTime = useRef(0);
 
-  // Set up gesture handler with optimized performance
+  // Set up gesture handler for touch/mobile
   const bind = useGesture(
     {
       onDrag: ({ movement: [mx, my], direction: [dx, dy], cancel }) => {
@@ -44,7 +44,7 @@ const SwipeHandler = memo(({ children, threshold = 50 }) => {
     }
   );
 
-  // Handle wheel events with debounce for desktop scrolling navigation
+  // Handle wheel events for desktop scrolling navigation
   useEffect(() => {
     const handleWheel = (e) => {
       if (isNavigating) return;
